@@ -14,15 +14,11 @@ from .block_entity_mapper import BlockEntityMapper
 from .block_mapper import BlockMapper
 from .entity_mapper import EntityMapper
 from .heightmaps import HeightmapCalculator
+from .leveldb_interface import LevelDBFactory
 from .logger import get_logger
 from .world_model import World
 
 LOGGER = get_logger(__name__)
-
-try:
-    import plyvel  # type: ignore
-except ImportError:  # pragma: no cover - depends on environment
-    plyvel = None
 
 
 class BedrockWorldReader:
@@ -35,6 +31,7 @@ class BedrockWorldReader:
         self.block_entity_mapper = BlockEntityMapper()
         self.entity_mapper = EntityMapper()
         self.heightmaps = HeightmapCalculator()
+        self.leveldb_factory = LevelDBFactory()
 
     def _resolve_db_path(self, world_path: Path) -> Path:
         if not world_path.exists():
@@ -45,10 +42,8 @@ class BedrockWorldReader:
         return db_path
 
     def _open_db(self):
-        if plyvel is None:
-            raise RuntimeError("plyvel is not installed. Install dependencies from requirements.txt")
         try:
-            return plyvel.DB(str(self.db_path), create_if_missing=False)
+            return self.leveldb_factory.create(self.db_path)
         except Exception as exc:
             raise RuntimeError(f"Failed to open LevelDB at {self.db_path}: {exc}") from exc
 

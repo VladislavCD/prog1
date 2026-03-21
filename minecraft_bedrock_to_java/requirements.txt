@@ -1,3 +1,4 @@
-plyvel>=1.5.0
+plyvel>=1.5.0; platform_system != "Windows"
+leveldb>=0.201; platform_system == "Windows"
 nbtlib>=2.0.4
 pytest>=8.0.0
