@@ -5,6 +5,7 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <CodePage>65001</CodePage>
     <AssemblyName>WorkshopTracker</AssemblyName>
   </PropertyGroup>
   <ItemGroup>

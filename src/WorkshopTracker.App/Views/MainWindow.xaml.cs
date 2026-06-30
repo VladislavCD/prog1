@@ -21,12 +21,22 @@ public partial class MainWindow : Window
             Filter = "Excel workbook (*.xlsx)|*.xlsx",
             CheckFileExists = true,
             Multiselect = false,
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            InitialDirectory = GetInitialDirectory()
         };
 
         if (dialog.ShowDialog(this) == true)
             _vm.ExcelPath = dialog.FileName;
     }
 
-    private async void Import_Click(object sender, RoutedEventArgs e) => await _vm.ImportAsync();
+    private async void Import_Click(object sender, RoutedEventArgs e)
+    {
+        await _vm.ImportAsync();
+        MessageBox.Show(_vm.Status, "Импорт Excel", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private static string GetInitialDirectory()
+    {
+        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        return Directory.Exists(downloads) ? downloads : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    }
 }

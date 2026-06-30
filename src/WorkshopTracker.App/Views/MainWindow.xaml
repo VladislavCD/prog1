@@ -20,8 +20,9 @@
           <Button Content="Выбрать файл…" Padding="16,10" Margin="0,0,10,0" Click="Browse_Click" DockPanel.Dock="Left" ToolTip="Открыть проводник и выбрать Excel-файл, например из папки Загрузки"/>
           <TextBox Text="{Binding ExcelPath, UpdateSourceTrigger=PropertyChanged}" FontSize="15" Padding="14" ToolTip="Можно вставить полный путь к .xlsx вручную"/>
         </DockPanel>
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button Content="Безопасно импортировать Excel" Padding="16,10" Click="Import_Click"/><TextBlock Text="{Binding Status}" Margin="16,9,0,0" Foreground="#475569" TextWrapping="Wrap"/></StackPanel>
-        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="18" Padding="16" Margin="0,14,0,0" ToolTip="Поиск по изделию, зав. №, н/з, договору, статусу"/>
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button Content="Импортировать" Padding="16,10" Click="Import_Click"/><TextBlock Text="{Binding Status}" Margin="16,9,0,0" Foreground="#475569" TextWrapping="Wrap"/></StackPanel>
+        <TextBlock Text="Поиск по загруженным данным" Foreground="#475569" Margin="0,14,0,6"/>
+        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="18" Padding="16" ToolTip="Поиск по изделию, зав. №, н/з, договору, статусу"/>
       </StackPanel>
       <DataGrid Grid.Row="2" ItemsSource="{Binding FilteredProducts}" SelectedItem="{Binding SelectedProduct}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False">
         <DataGrid.Columns>
