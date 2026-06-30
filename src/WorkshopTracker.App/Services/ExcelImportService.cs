@@ -17,7 +17,12 @@ public sealed class ExcelImportService
         }
         finally
         {
-            try { File.Delete(temp); } catch { /* temp cleanup best effort */ }
+            try
+            {
+                if (File.Exists(temp)) File.SetAttributes(temp, FileAttributes.Normal);
+                File.Delete(temp);
+            }
+            catch { /* temp cleanup best effort */ }
         }
     }
 
@@ -26,11 +31,13 @@ public sealed class ExcelImportService
         await using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         await using var target = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         await source.CopyToAsync(target, ct);
+        File.SetAttributes(tempPath, File.GetAttributes(tempPath) | FileAttributes.ReadOnly);
     }
 
     private static ImportResult ReadWorkbook(string tempPath, string sourcePath, DateTime importedAt, CancellationToken ct)
     {
-        using var wb = new XLWorkbook(tempPath);
+        using var stream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var wb = new XLWorkbook(stream);
         var products = new List<ProductSnapshot>();
         var incoming = new List<IncomingItem>();
         var issues = new List<ImportIssue>();

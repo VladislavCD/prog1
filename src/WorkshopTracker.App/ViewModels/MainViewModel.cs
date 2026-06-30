@@ -91,9 +91,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         UnauthorizedAccessException => $"Нет прав доступа. Подробности Windows: {ex.Message}",
         IOException => $"Файл или локальный кэш недоступен: {ex.Message}",
         InvalidOperationException when ex.InnerException is UnauthorizedAccessException inner => $"Нет прав доступа. {ex.Message}. Подробности Windows: {inner.Message}",
+        InvalidOperationException when MentionsPassword(ex) => $"Книга с паролем на запись поддерживается и читается только для чтения. Если Excel просит пароль именно на открытие файла, такой файл расшифровать нельзя: {ex.Message}",
         InvalidOperationException => ex.Message,
         _ => ex.Message
     };
+
+    private static bool MentionsPassword(Exception ex)
+    {
+        var text = $"{ex.Message} {ex.InnerException?.Message}".ToLowerInvariant();
+        return text.Contains("password") || text.Contains("парол");
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
