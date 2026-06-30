@@ -9,13 +9,21 @@ namespace WorkshopTracker.App.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly LocalCache _cache = new(Path.Combine(GetWritableAppDataDirectory(), "WorkshopTracker", "cache.sqlite"));
+    private readonly string _dataDirectory;
+    private readonly LocalCache _cache;
     private readonly ExcelImportService _importer = new();
     private string _excelPath = string.Empty;
-    private string _status = "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u00AB\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B\u2026\u00BB \u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0442\u044C \u043A .xlsx";
+    private string _status;
     private string _searchText = string.Empty;
     private bool _isImporting;
     private ProductSnapshot? _selectedProduct;
+
+    public MainViewModel()
+    {
+        _dataDirectory = GetWritableAppDataDirectory();
+        _cache = new LocalCache(Path.Combine(_dataDirectory, "cache.sqlite"));
+        _status = $"\u041F\u0430\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445: {_dataDirectory}. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 Excel-\u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0442\u044C \u043A .xlsx";
+    }
 
     public ObservableCollection<ProductSnapshot> Products { get; } = new();
     public ObservableCollection<ImportIssue> Issues { get; } = new();
@@ -36,6 +44,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             IsImporting = true;
             Status = "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 Excel-\u0444\u0430\u0439\u043B\u0430...";
             ValidateExcelPath();
+            await WriteLogAsync($"START {ExcelPath}");
 
             try
             {
@@ -44,19 +53,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u044D\u0448 SQLite: {ex.Message}", ex);
+                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u044D\u0448 SQLite \u0432 \u043F\u0430\u043F\u043A\u0435 {_dataDirectory}: {ex.Message}", ex);
             }
 
             ImportResult result;
             try
             {
                 Status = "\u0418\u043C\u043F\u043E\u0440\u0442 \u0434\u0430\u043D\u043D\u044B\u0445 \u0438\u0437 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0439 \u043A\u043E\u043F\u0438\u0438 Excel...";
-                result = await _importer.ImportAsync(ExcelPath);
+                result = await _importer.ImportAsync(ExcelPath, _dataDirectory);
                 await _cache.ReplaceSnapshotsAsync(result.Products, result.Incoming, result.Report);
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C Excel \u0438\u043B\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0434\u0430\u043D\u043D\u044B\u0435 \u0432 \u043A\u044D\u0448. \u0424\u0430\u0439\u043B: {ExcelPath}. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438: {ex.Message}", ex);
+                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C Excel \u0438\u043B\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0434\u0430\u043D\u043D\u044B\u0435 \u0432 \u043A\u044D\u0448. \u0424\u0430\u0439\u043B: {ExcelPath}. \u041F\u0430\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445: {_dataDirectory}. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438: {ex.Message}", ex);
             }
 
             Products.Clear();
@@ -65,11 +74,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             foreach (var issue in result.Report.Issues) Issues.Add(issue);
             OnChanged(nameof(FilteredProducts));
 
-            Status = $"\u0418\u043C\u043F\u043E\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D: \u043B\u0438\u0441\u0442\u043E\u0432 {result.Report.SheetsRead}, \u0441\u0442\u0440\u043E\u043A {result.Report.RowsProcessed}, \u0438\u0437\u0434\u0435\u043B\u0438\u0439 {result.Report.ProductsRecognized}, \u043F\u0440\u0435\u0434\u0443\u043F\u0440\u0435\u0436\u0434\u0435\u043D\u0438\u0439 {result.Report.Issues.Count}";
+            Status = $"\u0418\u043C\u043F\u043E\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D: \u043B\u0438\u0441\u0442\u043E\u0432 {result.Report.SheetsRead}, \u0441\u0442\u0440\u043E\u043A {result.Report.RowsProcessed}, \u0438\u0437\u0434\u0435\u043B\u0438\u0439 {result.Report.ProductsRecognized}, \u043F\u0440\u0435\u0434\u0443\u043F\u0440\u0435\u0436\u0434\u0435\u043D\u0438\u0439 {result.Report.Issues.Count}. \u041F\u0430\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445: {_dataDirectory}";
+            await WriteLogAsync($"OK sheets={result.Report.SheetsRead} rows={result.Report.RowsProcessed} products={result.Report.ProductsRecognized}");
         }
         catch (Exception ex)
         {
             Status = $"\u0418\u043C\u043F\u043E\u0440\u0442 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D. \u0414\u0430\u043D\u043D\u044B\u0435 \u043D\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u044B. {BuildUserMessage(ex)}";
+            await WriteLogAsync($"ERROR {Status}");
         }
         finally
         {
@@ -103,13 +114,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return text.Contains("password") || text.Contains("\u043F\u0430\u0440\u043E\u043B");
     }
 
+    private async Task WriteLogAsync(string message)
+    {
+        try
+        {
+            var logDir = Path.Combine(_dataDirectory, "logs");
+            Directory.CreateDirectory(logDir);
+            await File.AppendAllTextAsync(Path.Combine(logDir, "import.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Logging must never break import or UI feedback.
+        }
+    }
+
     private static string GetWritableAppDataDirectory()
     {
+        var baseDir = AppContext.BaseDirectory;
+        var currentDir = Environment.CurrentDirectory;
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var candidates = new[]
         {
-            Environment.GetEnvironmentVariable("LOCALAPPDATA"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".workshop-tracker")
+            Path.Combine(baseDir, "WorkshopTrackerData"),
+            Path.Combine(currentDir, "WorkshopTrackerData"),
+            string.IsNullOrWhiteSpace(userProfile) ? null : Path.Combine(userProfile, "WorkshopTrackerData")
         };
 
         foreach (var candidate in candidates.Where(c => !string.IsNullOrWhiteSpace(c)))
@@ -124,11 +152,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
             catch
             {
-                // Try the next user-writable location.
+                // Try the next app-owned location.
             }
         }
 
-        return AppContext.BaseDirectory;
+        throw new InvalidOperationException("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0439\u0442\u0438 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0443\u044E \u043F\u0430\u043F\u043A\u0443 \u0434\u043B\u044F \u0434\u0430\u043D\u043D\u044B\u0445 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0441 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u043E\u0439 \u0438\u043B\u0438 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F.");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

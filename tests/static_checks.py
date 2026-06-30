@@ -18,6 +18,7 @@ assert 'ClosedXML' in csproj
 assert 'Microsoft.Data.Sqlite' in csproj
 importer = (root / 'src/WorkshopTracker.App/Services/ExcelImportService.cs').read_text(encoding='utf-8')
 assert 'CopyWorkbookToTempAsync(excelPath, temp' in importer
+assert 'Path.Combine(workingDirectory, "temp")' in importer
 assert 'FileShare.ReadWrite | FileShare.Delete' in importer
 assert 'File.SetAttributes(tempPath, File.GetAttributes(tempPath) | FileAttributes.ReadOnly)' in importer
 assert 'new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read)' in importer
@@ -33,11 +34,16 @@ assert 'OpenFileDialog' in codebehind
 assert 'MessageBox.Show(_vm.Status' in codebehind
 vm = (root / 'src/WorkshopTracker.App/ViewModels/MainViewModel.cs').read_text(encoding='utf-8')
 assert 'GetWritableAppDataDirectory' in vm
-assert 'Environment.GetEnvironmentVariable("LOCALAPPDATA")' in vm
+assert 'WorkshopTrackerData' in vm
+assert 'Path.Combine(_dataDirectory, "logs")' in vm
+assert 'import.log' in vm
+assert '_importer.ImportAsync(ExcelPath, _dataDirectory)' in vm
 assert '\\u041D\\u0435 \\u0443\\u0434\\u0430\\u043B\\u043E\\u0441\\u044C' in vm
 assert '\\u041A\\u043D\\u0438\\u0433\\u0430 \\u0441 \\u043F\\u0430\\u0440\\u043E\\u043B\\u0435\\u043C' in vm
 readme = (root / 'README.md').read_text(encoding='utf-8')
 assert 'паролем **на запись/изменение** поддерживаются' in readme
+assert 'WorkshopTrackerData' in readme
+assert 'не сохраняются в `C:\\Windows`' in readme
 for cs in (root / 'src/WorkshopTracker.App').rglob('*.cs'):
     content = cs.read_text(encoding='utf-8')
     assert all(ord(ch) < 128 for ch in content), f'Non-ASCII text remains in {cs}'

@@ -6,11 +6,13 @@ namespace WorkshopTracker.App.Services;
 
 public sealed class ExcelImportService
 {
-    public async Task<ImportResult> ImportAsync(string excelPath, CancellationToken ct = default)
+    public async Task<ImportResult> ImportAsync(string excelPath, string workingDirectory, CancellationToken ct = default)
     {
         if (!File.Exists(excelPath)) throw new FileNotFoundException("Excel-\u0444\u0430\u0439\u043B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D", excelPath);
         var importedAt = DateTime.Now;
-        var temp = Path.Combine(Path.GetTempPath(), $"workshop-tracker-{Guid.NewGuid():N}.xlsx");
+        var tempDir = Path.Combine(workingDirectory, "temp");
+        Directory.CreateDirectory(tempDir);
+        var temp = Path.Combine(tempDir, $"workshop-tracker-{Guid.NewGuid():N}.xlsx");
         await CopyWorkbookToTempAsync(excelPath, temp, ct);
         try
         {
