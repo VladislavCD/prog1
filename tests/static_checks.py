@@ -17,7 +17,8 @@ assert '<CodePage>65001</CodePage>' in csproj
 assert 'ClosedXML' in csproj
 assert 'Microsoft.Data.Sqlite' in csproj
 importer = (root / 'src/WorkshopTracker.App/Services/ExcelImportService.cs').read_text(encoding='utf-8')
-assert 'File.Copy(excelPath, temp' in importer
+assert 'CopyWorkbookToTempAsync(excelPath, temp' in importer
+assert 'FileShare.ReadWrite | FileShare.Delete' in importer
 assert 'File.Delete(temp)' in importer
 cache = (root / 'src/WorkshopTracker.App/Services/LocalCache.cs').read_text(encoding='utf-8')
 assert 'CREATE VIRTUAL TABLE IF NOT EXISTS product_fts USING fts5' in cache
@@ -28,4 +29,7 @@ assert 'Поиск по загруженным данным' in xaml
 codebehind = (root / 'src/WorkshopTracker.App/Views/MainWindow.xaml.cs').read_text(encoding='utf-8')
 assert 'OpenFileDialog' in codebehind
 assert 'MessageBox.Show(_vm.Status' in codebehind
+vm = (root / 'src/WorkshopTracker.App/ViewModels/MainViewModel.cs').read_text(encoding='utf-8')
+assert 'Не удалось подготовить локальный кэш SQLite' in vm
+assert 'Не удалось прочитать Excel или сохранить данные в кэш' in vm
 print('static checks passed')

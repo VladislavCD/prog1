@@ -36,12 +36,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
             Status = "Проверка Excel-файла...";
             ValidateExcelPath();
 
-            await _cache.InitializeAsync();
-            _cache.BackupIfExists();
+            try
+            {
+                await _cache.InitializeAsync();
+                _cache.BackupIfExists();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Не удалось подготовить локальный кэш SQLite: {ex.Message}", ex);
+            }
 
-            Status = "Импорт данных из временной копии Excel...";
-            var result = await _importer.ImportAsync(ExcelPath);
-            await _cache.ReplaceSnapshotsAsync(result.Products, result.Incoming, result.Report);
+            ImportResult result;
+            try
+            {
+                Status = "Импорт данных из временной копии Excel...";
+                result = await _importer.ImportAsync(ExcelPath);
+                await _cache.ReplaceSnapshotsAsync(result.Products, result.Incoming, result.Report);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Не удалось прочитать Excel или сохранить данные в кэш. Файл: {ExcelPath}. Подробности: {ex.Message}", ex);
+            }
 
             Products.Clear();
             foreach (var p in result.Products.OrderByDescending(p => p.StatusDate).ThenBy(p => p.Name)) Products.Add(p);
@@ -73,8 +88,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private static string BuildUserMessage(Exception ex) => ex switch
     {
-        UnauthorizedAccessException => "Нет прав на чтение Excel-файла или запись локального кэша.",
-        IOException => $"Excel-файл недоступен или занят другим приложением: {ex.Message}",
+        UnauthorizedAccessException => $"Нет прав доступа. Подробности Windows: {ex.Message}",
+        IOException => $"Файл или локальный кэш недоступен: {ex.Message}",
+        InvalidOperationException when ex.InnerException is UnauthorizedAccessException inner => $"Нет прав доступа. {ex.Message}. Подробности Windows: {inner.Message}",
+        InvalidOperationException => ex.Message,
         _ => ex.Message
     };
 
