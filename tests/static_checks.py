@@ -32,9 +32,13 @@ codebehind = (root / 'src/WorkshopTracker.App/Views/MainWindow.xaml.cs').read_te
 assert 'OpenFileDialog' in codebehind
 assert 'MessageBox.Show(_vm.Status' in codebehind
 vm = (root / 'src/WorkshopTracker.App/ViewModels/MainViewModel.cs').read_text(encoding='utf-8')
-assert 'Не удалось подготовить локальный кэш SQLite' in vm
-assert 'Не удалось прочитать Excel или сохранить данные в кэш' in vm
-assert 'Книга с паролем на запись поддерживается' in vm
+assert 'GetWritableAppDataDirectory' in vm
+assert 'Environment.GetEnvironmentVariable("LOCALAPPDATA")' in vm
+assert '\\u041D\\u0435 \\u0443\\u0434\\u0430\\u043B\\u043E\\u0441\\u044C' in vm
+assert '\\u041A\\u043D\\u0438\\u0433\\u0430 \\u0441 \\u043F\\u0430\\u0440\\u043E\\u043B\\u0435\\u043C' in vm
 readme = (root / 'README.md').read_text(encoding='utf-8')
 assert 'паролем **на запись/изменение** поддерживаются' in readme
+for cs in (root / 'src/WorkshopTracker.App').rglob('*.cs'):
+    content = cs.read_text(encoding='utf-8')
+    assert all(ord(ch) < 128 for ch in content), f'Non-ASCII text remains in {cs}'
 print('static checks passed')

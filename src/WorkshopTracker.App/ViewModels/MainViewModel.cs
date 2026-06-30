@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -8,10 +9,10 @@ namespace WorkshopTracker.App.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly LocalCache _cache = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WorkshopTracker", "cache.sqlite"));
+    private readonly LocalCache _cache = new(Path.Combine(GetWritableAppDataDirectory(), "WorkshopTracker", "cache.sqlite"));
     private readonly ExcelImportService _importer = new();
     private string _excelPath = string.Empty;
-    private string _status = "Нажмите «Выбрать файл…» или вставьте путь к .xlsx";
+    private string _status = "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u00AB\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B\u2026\u00BB \u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0442\u044C \u043A .xlsx";
     private string _searchText = string.Empty;
     private bool _isImporting;
     private ProductSnapshot? _selectedProduct;
@@ -33,7 +34,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             IsImporting = true;
-            Status = "Проверка Excel-файла...";
+            Status = "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 Excel-\u0444\u0430\u0439\u043B\u0430...";
             ValidateExcelPath();
 
             try
@@ -43,19 +44,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Не удалось подготовить локальный кэш SQLite: {ex.Message}", ex);
+                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u044D\u0448 SQLite: {ex.Message}", ex);
             }
 
             ImportResult result;
             try
             {
-                Status = "Импорт данных из временной копии Excel...";
+                Status = "\u0418\u043C\u043F\u043E\u0440\u0442 \u0434\u0430\u043D\u043D\u044B\u0445 \u0438\u0437 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0439 \u043A\u043E\u043F\u0438\u0438 Excel...";
                 result = await _importer.ImportAsync(ExcelPath);
                 await _cache.ReplaceSnapshotsAsync(result.Products, result.Incoming, result.Report);
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Не удалось прочитать Excel или сохранить данные в кэш. Файл: {ExcelPath}. Подробности: {ex.Message}", ex);
+                throw new InvalidOperationException($"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C Excel \u0438\u043B\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0434\u0430\u043D\u043D\u044B\u0435 \u0432 \u043A\u044D\u0448. \u0424\u0430\u0439\u043B: {ExcelPath}. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438: {ex.Message}", ex);
             }
 
             Products.Clear();
@@ -64,11 +65,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             foreach (var issue in result.Report.Issues) Issues.Add(issue);
             OnChanged(nameof(FilteredProducts));
 
-            Status = $"Импорт выполнен: листов {result.Report.SheetsRead}, строк {result.Report.RowsProcessed}, изделий {result.Report.ProductsRecognized}, предупреждений {result.Report.Issues.Count}";
+            Status = $"\u0418\u043C\u043F\u043E\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D: \u043B\u0438\u0441\u0442\u043E\u0432 {result.Report.SheetsRead}, \u0441\u0442\u0440\u043E\u043A {result.Report.RowsProcessed}, \u0438\u0437\u0434\u0435\u043B\u0438\u0439 {result.Report.ProductsRecognized}, \u043F\u0440\u0435\u0434\u0443\u043F\u0440\u0435\u0436\u0434\u0435\u043D\u0438\u0439 {result.Report.Issues.Count}";
         }
         catch (Exception ex)
         {
-            Status = $"Импорт не выполнен. Данные не обновлены. {BuildUserMessage(ex)}";
+            Status = $"\u0418\u043C\u043F\u043E\u0440\u0442 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D. \u0414\u0430\u043D\u043D\u044B\u0435 \u043D\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u044B. {BuildUserMessage(ex)}";
         }
         finally
         {
@@ -79,19 +80,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void ValidateExcelPath()
     {
         if (string.IsNullOrWhiteSpace(ExcelPath))
-            throw new InvalidOperationException("Сначала выберите Excel-файл кнопкой «Выбрать файл…» или вставьте полный путь к .xlsx.");
+            throw new InvalidOperationException("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 Excel-\u0444\u0430\u0439\u043B \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u00AB\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B\u2026\u00BB \u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C \u043A .xlsx.");
         if (!File.Exists(ExcelPath))
-            throw new FileNotFoundException("Файл не найден. Проверьте путь или выберите файл через кнопку «Выбрать файл…».", ExcelPath);
+            throw new FileNotFoundException("\u0424\u0430\u0439\u043B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u0443\u0442\u044C \u0438\u043B\u0438 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0444\u0430\u0439\u043B \u0447\u0435\u0440\u0435\u0437 \u043A\u043D\u043E\u043F\u043A\u0443 \u00AB\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B\u2026\u00BB.", ExcelPath);
         if (!Path.GetExtension(ExcelPath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Нужно выбрать файл Excel в формате .xlsx.");
+            throw new InvalidOperationException("\u041D\u0443\u0436\u043D\u043E \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B Excel \u0432 \u0444\u043E\u0440\u043C\u0430\u0442\u0435 .xlsx.");
     }
 
     private static string BuildUserMessage(Exception ex) => ex switch
     {
-        UnauthorizedAccessException => $"Нет прав доступа. Подробности Windows: {ex.Message}",
-        IOException => $"Файл или локальный кэш недоступен: {ex.Message}",
-        InvalidOperationException when ex.InnerException is UnauthorizedAccessException inner => $"Нет прав доступа. {ex.Message}. Подробности Windows: {inner.Message}",
-        InvalidOperationException when MentionsPassword(ex) => $"Книга с паролем на запись поддерживается и читается только для чтения. Если Excel просит пароль именно на открытие файла, такой файл расшифровать нельзя: {ex.Message}",
+        UnauthorizedAccessException => $"\u041D\u0435\u0442 \u043F\u0440\u0430\u0432 \u0434\u043E\u0441\u0442\u0443\u043F\u0430. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438 Windows: {ex.Message}",
+        IOException => $"\u0424\u0430\u0439\u043B \u0438\u043B\u0438 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u044D\u0448 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D: {ex.Message}",
+        InvalidOperationException when ex.InnerException is UnauthorizedAccessException inner => $"\u041D\u0435\u0442 \u043F\u0440\u0430\u0432 \u0434\u043E\u0441\u0442\u0443\u043F\u0430. {ex.Message}. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438 Windows: {inner.Message}",
+        InvalidOperationException when MentionsPassword(ex) => $"\u041A\u043D\u0438\u0433\u0430 \u0441 \u043F\u0430\u0440\u043E\u043B\u0435\u043C \u043D\u0430 \u0437\u0430\u043F\u0438\u0441\u044C \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u0438 \u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0434\u043B\u044F \u0447\u0442\u0435\u043D\u0438\u044F. \u0415\u0441\u043B\u0438 Excel \u043F\u0440\u043E\u0441\u0438\u0442 \u043F\u0430\u0440\u043E\u043B\u044C \u0438\u043C\u0435\u043D\u043D\u043E \u043D\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u0435 \u0444\u0430\u0439\u043B\u0430, \u0442\u0430\u043A\u043E\u0439 \u0444\u0430\u0439\u043B \u0440\u0430\u0441\u0448\u0438\u0444\u0440\u043E\u0432\u0430\u0442\u044C \u043D\u0435\u043B\u044C\u0437\u044F: {ex.Message}",
         InvalidOperationException => ex.Message,
         _ => ex.Message
     };
@@ -99,7 +100,35 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private static bool MentionsPassword(Exception ex)
     {
         var text = $"{ex.Message} {ex.InnerException?.Message}".ToLowerInvariant();
-        return text.Contains("password") || text.Contains("парол");
+        return text.Contains("password") || text.Contains("\u043F\u0430\u0440\u043E\u043B");
+    }
+
+    private static string GetWritableAppDataDirectory()
+    {
+        var candidates = new[]
+        {
+            Environment.GetEnvironmentVariable("LOCALAPPDATA"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".workshop-tracker")
+        };
+
+        foreach (var candidate in candidates.Where(c => !string.IsNullOrWhiteSpace(c)))
+        {
+            try
+            {
+                Directory.CreateDirectory(candidate!);
+                var probe = Path.Combine(candidate!, $"workshop-tracker-write-test-{Guid.NewGuid():N}.tmp");
+                File.WriteAllText(probe, "ok");
+                File.Delete(probe);
+                return candidate!;
+            }
+            catch
+            {
+                // Try the next user-writable location.
+            }
+        }
+
+        return AppContext.BaseDirectory;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

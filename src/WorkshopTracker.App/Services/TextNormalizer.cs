@@ -9,7 +9,7 @@ public static partial class TextNormalizer
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var text = value.Trim().ToUpperInvariant()
-            .Replace('—', '-').Replace('–', '-')
+            .Replace('\u2014', '-').Replace('\u2013', '-')
             .Replace('(', ' ').Replace(')', ' ')
             .Replace('[', ' ').Replace(']', ' ');
         text = Whitespace().Replace(text, " ");
